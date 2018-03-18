@@ -9,6 +9,7 @@
 //  http://www.lahey.com/docs/lfprohelp/F95AREXTERNALStmt.htm
 //  http://www.personal.psu.edu/jhm/f90/statements/intrinsic.html
 //  http://earth.uni-muenster.de/~joergs/doc/f90/lrm/lrm0083.htm#data_type_declar
+//  https://pages.mtu.edu/~shene/COURSES/cs201/NOTES/chap08/io.html
 //
 // Semicolons are treated exactly like newlines and can end any statement
 // or be used to chain multiple ones together with the exception of using
@@ -282,16 +283,22 @@ module.exports = grammar({
     _statement_label_reference: $ => alias($.statement_label, $.statement_label_reference),
 
     assignment_statement: $ => prec.right(PREC.ASSIGNMENT, seq(
-      $._expression,
+      $._assignment_targets,
       '=',
       $._expression
     )),
 
     pointer_association_statement: $ => prec.right(seq(
-      $._expression, // this needs to support structs i.e. mytype%attr
+      $._assignment_targets,
       '=>',
       $._expression
     )),
+
+    _assignment_targets: $ => choice(
+      $.identifier,
+      $.derived_type_member_expression,
+      $.call_expression
+    ),
 
     subroutine_call: $ => seq(
       caseInsensitive('call'),
@@ -421,7 +428,7 @@ module.exports = grammar({
     ),
 
     // precedence is used to override a conflict with the complex literal
-    unit_identifier: $ => prec(1, choice(
+    unit_identifier: $ => prec(2, choice(
       $.number_literal,
       $._io_expressions
     )),
@@ -433,7 +440,7 @@ module.exports = grammar({
 
     // This is a limited set of expressions that can be used in IO statements
     // precedence is used to override a conflict with the complex literal
-    _io_expressions: $ => prec(1, choice(
+    _io_expressions: $ => prec(2, choice(
       '*',
       $.string_literal,
       $.identifier,
@@ -444,7 +451,13 @@ module.exports = grammar({
       $.call_expression
     )),
 
-    input_item_list: $ => prec.right(commaSep1($._expression)),
+    input_item_list: $ => prec.right(commaSep1(choice(
+      $.identifier,
+      $.derived_type_member_expression,
+      $.parenthesized_expression,
+      $.implied_do_loop_expression,
+      $.call_expression
+    ))),
 
     output_item_list: $ => prec.right(commaSep1($._expression)),
 
@@ -462,8 +475,8 @@ module.exports = grammar({
       $.concatenation_expression,
       $.math_expression,
       $.parenthesized_expression,
+      $.implied_do_loop_expression,
       $.call_expression
-      // $.implied_do_loop_expression  // https://pages.mtu.edu/~shene/COURSES/cs201/NOTES/chap08/io.html
     ),
 
     parenthesized_expression: $ => seq(
@@ -521,6 +534,23 @@ module.exports = grammar({
       prec.right(PREC.UNARY, seq('+', $._expression))
     ),
 
+    implied_do_loop_expression: $ => seq(
+      '(',
+      commaSep1($._expression),
+      ',',
+      $.loop_control_expression,
+      ')'
+    ),
+
+    loop_control_expression: $ => seq(
+      $.identifier,
+      '=',
+      $._expression,
+      ',',
+      $._expression,
+      optional(seq(',', $._expression))
+    ),
+
     // Due to the fact Fortran uses parentheses for both function calls and
     // array access there is no way to differentiate the two except for the
     // isolated case of assignment, since you can't assign to a function call.
@@ -567,14 +597,7 @@ module.exports = grammar({
     block_label_start_expression: $ => /[a-zA-Z_]\w*:/,
     _block_label: $ => alias($.identifier, $.block_label),
 
-    loop_control_expression: $ => seq(
-      $.identifier,
-      '=',
-      $._expression,
-      ',',
-      $._expression,
-      optional(seq(',', $._expression))
-    ),
+    // Literals
 
     number_literal: $ => token(
       choice(
@@ -588,13 +611,13 @@ module.exports = grammar({
         /[-+]?[zZ]?'[0-9a-fA-F]+'[zZ]?/
       )),
 
-    complex_literal: $ => seq(
+    complex_literal: $ => prec.left(1, seq(
       '(',
       choice($.number_literal, $.identifier),
       ',',
       choice($.number_literal, $.identifier),
       ')'
-    ),
+    )),
 
     string_literal: $ => choice(
       $._double_quoted_string,
