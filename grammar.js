@@ -516,6 +516,7 @@ module.exports = grammar({
     procedure_qualifier: $ => choice(
       caseInsensitive('elemental'),
       caseInsensitive('pure'),
+      caseInsensitive('impure'),
       caseInsensitive('recursive')
     ),
 

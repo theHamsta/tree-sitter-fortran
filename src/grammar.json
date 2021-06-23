@@ -3284,6 +3284,15 @@
           "type": "ALIAS",
           "content": {
             "type": "PATTERN",
+            "value": "[iI][mM][pP][uU][rR][eE]"
+          },
+          "named": false,
+          "value": "impure"
+        },
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "PATTERN",
             "value": "[rR][eE][cC][uU][rR][sS][iI][vV][eE]"
           },
           "named": false,
