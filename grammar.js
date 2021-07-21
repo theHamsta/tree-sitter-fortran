@@ -566,7 +566,10 @@ module.exports = grammar({
       $.format_statement,
       $.print_statement,
       $.write_statement,
-      $.read_statement
+      $.read_statement,
+      $.open_statement,
+      $.close_statement,
+      $.inquire_statement
     ),
 
     statement_label: $ => prec(1, alias($._integer_literal, 'statement_label')),
@@ -798,6 +801,12 @@ module.exports = grammar({
     )),
 
     edit_descriptor: $ => /[a-zA-Z0-9/:.*]+/,
+
+    inquire_statement: $ => ioStatement($, 'inquire'),
+
+    open_statement: $ => ioStatement($, 'open'),
+
+    close_statement: $ => ioStatement($, 'close'),
 
     read_statement: $ => choice(
       $._simple_read_statement,
@@ -1138,6 +1147,19 @@ function whiteSpacedKeyword (prefix, suffix) {
     seq(caseInsensitive(prefix, false), caseInsensitive(suffix, false)),
     caseInsensitive(prefix + suffix, false)),
   prefix + suffix)
+}
+
+function ioStatement($, statement){
+    return seq(
+      caseInsensitive(statement),
+      '(',
+      choice(
+        $.unit_identifier,
+        seq($.unit_identifier, ',', commaSep1($.keyword_argument)),
+        commaSep1($.keyword_argument)
+        ),
+      ')'
+    )
 }
 
 /* TODO
