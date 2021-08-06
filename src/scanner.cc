@@ -8,7 +8,6 @@ using std::wstring;
 using std::isalpha;
 using std::iswalnum;
 using std::iswdigit;
-using std::iswxdigit;
 using std::iswspace;
 
 enum TokenType {
